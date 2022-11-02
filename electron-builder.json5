@@ -1,0 +1,47 @@
+/**
+ * @see https://www.electron.build/configuration/configuration
+ */
+{
+  "appId": "com.nic.treasure-box",
+  "productName": "百宝箱",
+  "copyright": "Copyright ©️ 2021 Nic",
+  "asar": true,
+  "directories": {
+    "output": "release/${version}"
+  },
+  "publish": [
+    {
+      "provider": ["github"]
+    }
+  ],
+  "files": [
+    "dist-electron",
+    "dist"
+  ],
+  "mac": {
+    "icon": "./public/favicon.png",
+    "artifactName": "${productName}_${version}.${ext}",
+    "target": [
+      "dmg"
+    ]
+  },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "artifactName": "${productName}_${version}.${ext}"
+  },
+  "nsis": {
+    "oneClick": false, // 是否一键安装
+    "perMachine": false, //
+    "allowToChangeInstallationDirectory": true, // 允许修改安装目录
+    "deleteAppDataOnUninstall": false, // 卸载应用时清除应用数据
+    "createDesktopShortcut": true, // 创建桌面图标
+    "createStartMenuShortcut": true, // 创建开始菜单图标
+  }
+}
