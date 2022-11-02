@@ -9,11 +9,10 @@
   "directories": {
     "output": "release/${version}"
   },
-  "publish": [
-    {
-      "provider": ["github"]
-    }
-  ],
+  "publish": {
+    "provider": "github",
+    "releaseType": "release"
+  },
   "files": [
     "dist-electron",
     "dist"

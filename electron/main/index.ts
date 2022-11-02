@@ -17,6 +17,7 @@ import { readdir, rename } from 'node:fs/promises'
 import path from 'path'
 import { release } from 'os'
 import { join } from 'path'
+import { autoUpdater } from 'electron-updater'
 
 // Disable GPU Acceleration for Windows 7
 if (release().startsWith('6.1')) app.disableHardwareAcceleration()
@@ -63,8 +64,13 @@ async function createWindow() {
 
   // 设置 菜单栏
   const menuTemplate = [
-    { label: '帮助', submenu: [{ label: '控制台', click: () => { win.webContents.openDevTools() } }] },
-    { label: '关于' },
+    {
+      label: '帮助', submenu: [
+        { label: '控制台', click: () => { win.webContents.openDevTools() } },
+        { label: '关于', click: () => { console.log('[version]', app.getVersion()) } },
+      ]
+    },
+    { label: '关于', },
   ]
   // 对于 OSX 而言，应用菜单的第一个菜单项是应用程序的名字
   if (process.platform === 'darwin') {
@@ -129,6 +135,11 @@ app.on('activate', () => {
   }
 })
 
+app.on('ready', () => {
+  // 检查更新 github 众所周知的问题 暂时关闭更新
+  // checkUpdate()
+})
+
 // new window example arg: new windows url
 ipcMain.handle('open-win', (event, arg) => {
   const childWindow = new BrowserWindow({
@@ -186,6 +197,11 @@ ipcMain.on('beep', async (event, path) => {
   shell.beep()
 })
 
+// 应用 version 版本
+ipcMain.on('version', (event) => {
+  event.sender.send('version', { version: app.getVersion() })
+})
+
 // toast
 ipcMain.on('toast-message', (event, msg) => {
   const notification = new Notification({
@@ -198,14 +214,14 @@ ipcMain.on('toast-message', (event, msg) => {
 })
 
 // rename file
-ipcMain.on('rename-file', async (event, dir: {dirpath: string; sourceName: string; targetName: string}) => {
+ipcMain.on('rename-file', async (event, dir: { dirpath: string; sourceName: string; targetName: string }) => {
   const contentList = await readdir(dir.dirpath, { withFileTypes: true })
   // 过滤文件 不要文件夹
   const fileList = contentList.filter(dirent => dirent.isFile())
   fileList.forEach(dirent => {
     if (dirent.name.startsWith(dir.sourceName)) {
       const target = dirent.name.replace(dir.sourceName, dir.targetName)
-      rename(path.resolve(dir.dirpath, dirent.name), path.resolve(dir.dirpath, target)).catch(e => {})
+      rename(path.resolve(dir.dirpath, dirent.name), path.resolve(dir.dirpath, target)).catch(e => { })
       console.log('[replace]', target, 'success')
     }
   })
@@ -217,3 +233,53 @@ ipcMain.on('rename-file', async (event, dir: {dirpath: string; sourceName: strin
     children: fileList2
   }
 })
+
+function checkUpdate() {
+  // 检测更新
+  autoUpdater.checkForUpdatesAndNotify()
+
+  // error 事件
+  autoUpdater.on('error', error => {
+    console.error('[update]', error.message)
+  })
+
+  // 默认会自动下载新版本，如果不想自动下载，设置
+  autoUpdater.autoDownload = false
+
+  autoUpdater.on('checking-for-update', () => {
+    console.info('[update]', '检测更新中')
+  })
+
+  autoUpdater.on('update-not-available', info => {
+    console.info('[update] no update:', info)
+  })
+
+  autoUpdater.on('update-available', info => {
+    console.info('[update]', info)
+  })
+
+  autoUpdater.on('download-progress', progress => {
+    console.log('[update] progress',
+      'Speed:', progress.bytesPerSecond,
+      'Downloaded:', progress.percent, '%',
+      '(',
+      progress.transferred, '/', progress.total,
+      ')'
+    )
+  })
+
+  // 新版本下载完成时触发
+  autoUpdater.on('update-downloaded', () => {
+    dialog.showMessageBox({
+      type: 'info',
+      title: '更新百宝箱',
+      message: '发现版本，是否更新？',
+      buttons: ['是', '否']
+    }).then(btnIdx => {
+      if (btnIdx.response === 0) {
+        autoUpdater.quitAndInstall()
+        app.quit()
+      }
+    })
+  })
+}
