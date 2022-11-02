@@ -236,7 +236,7 @@ ipcMain.on('rename-file', async (event, dir: { dirpath: string; sourceName: stri
 
 function checkUpdate() {
   // 检测更新
-  autoUpdater.checkForUpdatesAndNotify()
+  autoUpdater.checkForUpdates()
 
   // error 事件
   autoUpdater.on('error', error => {
